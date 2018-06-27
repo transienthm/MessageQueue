@@ -1,4 +1,4 @@
-package com.meituan.mq.simple;
+package com.meituan.mq.work;
 
 import com.meituan.mq.simple.utils.ConnectionUtil;
 import com.rabbitmq.client.*;
@@ -6,8 +6,8 @@ import com.rabbitmq.client.*;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-public class Receive {
-    private static final String QUEUE_NAME = "test_simple_queue";
+public class Recv1 {
+    private static final String QUEUE_NAME = "test_work_queue";
 
     public static void main(String[] args) throws IOException, TimeoutException {
         Connection connection = ConnectionUtil.getConnection();
@@ -21,10 +21,16 @@ public class Receive {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 String msg = new String(body, "utf8");
-                System.out.println("msg receive : " + msg);
+                System.out.println("[1] msg recv1 : " + msg);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         };
 
-        channel.basicConsume(QUEUE_NAME, consumer);
+        boolean ack = true;
+        channel.basicConsume(QUEUE_NAME, ack, consumer);
     }
 }

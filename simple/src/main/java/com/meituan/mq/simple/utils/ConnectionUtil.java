@@ -16,7 +16,7 @@ public class ConnectionUtil {
         //定义一个连接工厂
         ConnectionFactory factory = new ConnectionFactory();
 
-        factory.setHost("127.0.0.1");
+        factory.setHost("39.104.114.86");
         //AMQP的端口
         factory.setPort(5672);
         //vhost
@@ -26,5 +26,25 @@ public class ConnectionUtil {
 
         Connection connection = factory.newConnection();
         return connection;
+    }
+
+    public static void main(String[] args) {
+        Connection connection = null;
+        try {
+            connection = getConnection();
+            System.out.println(connection);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }
