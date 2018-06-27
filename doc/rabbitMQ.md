@@ -865,3 +865,65 @@ public class Recv2 {
 - AMQP实现了事务机制
 - confirm模式
 
+## 8.1 事务机制
+
+- txSelect 
+
+  用于将当前channel设置成transaction模式
+
+- txCommit
+
+  用于提交事务
+
+- txRollback
+
+  回滚事务
+
+生产者发送消息
+
+```java
+import com.meituan.mq.simple.utils.ConnectionUtil;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
+public class Send {
+    private static final String QUEUE_NAME = "test_queue_tx";
+
+    public static void main(String[] args) throws IOException, TimeoutException {
+        Connection connection = ConnectionUtil.getConnection();
+        Channel channel = connection.createChannel();
+
+        channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+
+        String msg = "hello tx msg!";
+
+        try {
+            channel.txSelect();
+            channel.basicPublish("", QUEUE_NAME, null, msg.getBytes());
+            channel.txCommit();
+        } catch (IOException e) {
+            channel.txRollback();
+            System.out.println("发生异常，事务已回滚");
+        }
+    }
+}
+```
+
+事务机制会降低rabbitMQ的吞吐量。
+
+## 8.2 Confirm模式
+
+生产者将信道设置成confirm模式，一旦信道进入confirm模式，所有在该信道上面发布的消息都将会被指派一个唯一的ID(从1开始)，一旦消息被投递到所有匹配的队列之后，broker就会发送一个确认给生产者(包含消息的唯一ID)，这就使得生产者知道消息已经正确到达目的队列了，如果消息和队列是可持久化的，那么确认消息会在将消息写入磁盘之后发出，broker回传给生产者的确认消息中delivery-tag域包含了确认消息的序列号，此外broker也可以设置basic.ack的multiple域，表示到这个序列号之前的所有消息都已经得到了处理；
+
+confirm模式最大的好处在于他是异步的，一旦发布一条消息，生产者应用程序就可以在等信道返回确认的同时继续发送下一条消息，当消息最终得到确认之后，生产者应用便可以通过回调方法来处理该确认消息，如果RabbitMQ因为自身内部错误导致消息丢失，就会发送一条nack消息，生产者应用程序同样可以在回调方法中处理该nack消息。
+
+编程模式：
+
+1、普通，发一条
+
+2、批量，发一批
+
+3、异步confirm模式，提供一个回调方法
